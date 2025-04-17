@@ -18,7 +18,5 @@ Was not on github, wrote a hello world
 - Used AI to get a brief intro into the language and how they are structured and function.
 - Installed `composer` and initiated a project.
 - Created `Model/Post.php` and `Repository/PostRepository.php`.
-
-XSS prevention :heart: :heart:
-
+- added semi-auth thing
 Importing an `.html` file directly seems strange, probably not a good practice.

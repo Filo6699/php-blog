@@ -1,69 +1,69 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
 
+session_start();
+if (!isset($_SESSION['username'])) {
+  header('Location: login.php');
+  exit;
+}
+$userUsername = $_SESSION['username'];
+
 use App\Model\Post;
 use App\Repository\PostRepository;
 
 $dataFile = __DIR__ . '/data/posts.json';
 $repo     = new PostRepository($dataFile);
 $errors   = [];
+$successMessage = '';
 
-function create_post($title, $description) {
-  global $repo, $errors;
+$title = '';
+$description = '';
 
-  if ($title == "" || $description == "") {
-    $errors[] = [
-      'source'  => 'Post creation',
-      'message' => 'Fill in all of the fields!',
-    ];
-    return;
-  }
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $title = $_POST["title"] ?? '';
+    $description = $_POST["description"] ?? '';
 
-  if (strlen($title) > 64) {
-    $errors[] = [
-      'source'  => 'Post creation',
-      'message' => 'The title is too long!',
-    ];
-    return;
-  }
-  if (strlen($description) > 1024) {
-    $errors[] = [
-      'source'  => 'Post creation',
-      'message' => 'The description is too long!',
-    ];
-    return;
-  }
-
-  $newId    = count($repo->getAll()) + 1;
-  $post     = new Post(
-    $newId,
-    $title,
-    $description,
-  );
-  $repo->add($post);
-
-  echo "Your post has been published! ID: $newId";
+    $validationErrors = Post::validate($title, $description);
+    if (!empty($validationErrors)) {
+        $errors = $validationErrors;
+    } else {
+        $newId = count($repo->getAll()) + 1;
+        $post = new Post(
+          id: $newId,
+          title: $title,
+          content: $description,
+          author: $userUsername,
+        );
+        $repo->add($post);
+        $successMessage = "Your post has been published!";
+        $title = '';
+        $description = '';
+    }
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $title = $_POST["title"];
-  $description = $_POST["description"];
-
-  create_post($title, $description);
+if (!empty($errors)) {
+    echo '<div class="errors"><b>errors!</b><ul>';
+    foreach ($errors as $err) {
+        echo "<li><b>{$err['source']}:</b> {$err['message']}</li>";
+    }
+    echo '</ul></div>';
 }
 
-foreach ($errors as $err) {
-  echo "<div class=\"error\">";
-  echo "<b>" . $err["source"] . "</b><br>";
-  echo $err["message"];
-  echo "</div>";
+if ($successMessage) {
+    echo htmlspecialchars($successMessage);
+    echo "<br>";
 }
 
-require __DIR__ . '/views/create_post.html';
+echo "your username: " . htmlspecialchars($userUsername);
+
+require __DIR__ . '/views/create_post.php';
+
+echo '<hr>';
 
 foreach ($repo->getAll() as $p) {
     echo "<article>";
-    echo "<h2>" . htmlspecialchars($p->getTitle()) . "</h2>";
+    echo "<h3>" . htmlspecialchars($p->getTitle()) . "</h3>";
+    echo "Author: " . htmlspecialchars($userUsername);
     echo "<p>" . nl2br(htmlspecialchars($p->getContent())) . "</p>";
     echo "</article><hr>";
 }
